@@ -51,12 +51,12 @@ void *realloc(void *ptr, size_t size) {
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size) {
   REAL(reallocarray);
+  // TODO: malloc_size on OSX, tc_malloc_usable_size in tcmalloc
+  size_t old_size = ptr ? malloc_usable_size(ptr) : 0;
   char *res = (char *)real(ptr, nmemb, size);
   if (!res)
     return res;
   // reallocarray guarantees that there is no overflow at this point
-  // TODO: malloc_size on OSX, tc_malloc_usable_size in tcmalloc
-  size_t old_size = ptr ? malloc_usable_size(ptr) : 0;
   size_t len = nmemb * size;
   if (len > old_size)
     memset(res + old_size, 0, len - old_size);
@@ -66,9 +66,8 @@ void *reallocarray(void *ptr, size_t nmemb, size_t size) {
 int posix_memalign(void **memptr, size_t alignment, size_t size) {
   REAL(posix_memalign);
   int res = real(memptr, alignment, size);
-  if (res || !*memptr)
-    return res;
-  memset(*memptr, 0, size);
+  if (res == 0 && *memptr)
+    memset(*memptr, 0, size);
   return res;
 }
 
