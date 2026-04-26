@@ -12,9 +12,10 @@ $ LD_PRELOAD=libzeralloc.so ./prog
 ```
 
 Limitations:
-  - Linux only
+  - Linux only (it _may be_ ok for OSX with `DYLD_INSERT_LIBRARIES`)
   - Huge RAM and performance overheads (a good solution should do `mmap`
-    instead of resetting bytes).
+    instead of resetting bytes or maybe `calloc` already does this).
   - Won't work for programs that link against static allocator library
   - A better (but less ergonomic) approach would be to use compiler plugin
     (to allow compiler to remove redundant inits)
+  - Integration with sanitizers and Valgrind not tested

@@ -12,6 +12,10 @@
 #include <stdint.h>
 #include <dlfcn.h>
 
+// To my knowledge the code below
+//   - is thread-safe
+//   - works for C++ new operators (they use malloc under the hood)
+
 size_t malloc_usable_size (void *ptr);
 void *memset(void *s, int c, size_t n);
 
@@ -26,6 +30,8 @@ void *__libc_realloc(void *ptr, size_t size);
     real = dlsym(RTLD_NEXT, #name);
 
 void *malloc(size_t size) {
+  // Call calloc here and in other places for more efficient allocation ?
+  // But this may introduce infinite recursion...
   void *res = __libc_malloc(size);
   if (res)
     memset(res, 0, size);
@@ -33,12 +39,15 @@ void *malloc(size_t size) {
 }
 
 void *realloc(void *ptr, size_t size) {
-  size_t old_size = malloc_usable_size(ptr);
+  // TODO: malloc_size on OSX, tc_malloc_usable_size in tcmalloc
+  size_t old_size = ptr ? malloc_usable_size(ptr) : 0;
   char *res = (char *)__libc_realloc(ptr, size);
   if (res && size > old_size)
     memset(res + old_size, 0, size - old_size);
   return res;
 }
+
+// Calloc already zeroes memory
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size) {
   REAL(reallocarray);
@@ -46,7 +55,8 @@ void *reallocarray(void *ptr, size_t nmemb, size_t size) {
   if (!res)
     return res;
   // reallocarray guarantees that there is no overflow at this point
-  size_t old_size = malloc_usable_size(ptr);
+  // TODO: malloc_size on OSX, tc_malloc_usable_size in tcmalloc
+  size_t old_size = ptr ? malloc_usable_size(ptr) : 0;
   size_t len = nmemb * size;
   if (len > old_size)
     memset(res + old_size, 0, len - old_size);
