@@ -21,6 +21,8 @@ void *memset(void *s, int c, size_t n);
 
 // Malloc and realloc are called inside dlsym
 // so need to be careful
+// (this will break sanitizers so better add a ctor to initialize pointers and
+// use a temp buffer for dlsym allocations)
 void *__libc_malloc(size_t size);
 void *__libc_realloc(void *ptr, size_t size);
 
@@ -98,6 +100,7 @@ void *memalign(size_t alignment, size_t size) {
 void *pvalloc(size_t size) {
   REAL(pvalloc);
   void *res = real(size);
+  // TODO: round size to page size
   if (res)
     memset(res, 0, size);
   return res;
